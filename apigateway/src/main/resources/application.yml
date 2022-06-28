@@ -1,0 +1,54 @@
+server:
+  port: 9292
+
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      routes:
+        - id: CORE-BANKING
+          uri: lb://CORE-BANKING
+          predicates:
+            - Path=/api/v1/account/**,/api/v1/transaction/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: CORE-BANKING
+                fallbackuri: forward:/coreBankingServiceFallBackMethod
+
+        - id: REPORT-GENERATION
+          uri: lb://REPORT-GENERATION
+          predicates:
+            - Path=/api/v1/TransactionHistory/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: REPORT-GENERATION
+                fallbackuri: forward:/reportGenerationServiceFallBackMethod
+
+        - id: USER-MANAGEMENT
+          uri: lb://USER-MANAGEMENT
+          predicates:
+              - Path=/api/v1/users/**,/api/v1/token/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: USER-MANAGEMENT
+                fallbackuri: forward:/userManagementServiceFallBack
+
+
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream
